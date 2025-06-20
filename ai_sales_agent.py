@@ -227,21 +227,6 @@ class ContextManager:
         finally:
             db.close()
     
-    # def store_conversation(self, conversation_context: ConversationContext):
-    #     """Store conversation history"""
-    #     db = self.SessionLocal()
-    #     try:
-    #         conv_record = ConversationHistory(
-    #             conversation_id=conversation_context.conversation_id,
-    #             client_id=conversation_context.client_id,
-    #             messages=json.dumps(conversation_context.messages),
-    #             stage=conversation_context.conversation_stage
-    #         )
-    #         db.merge(conv_record)
-    #         db.commit()
-    #     finally:
-    #         db.close()
-
     def store_conversation(self, conversation_context: ConversationContext):
         """Store conversation history - FIXED VERSION"""
         db = self.SessionLocal()
