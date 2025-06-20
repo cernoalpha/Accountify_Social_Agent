@@ -287,42 +287,30 @@ class AISalesAgent:
         self.openai_client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
         self.context_manager = ContextManager()
         
-        # Your product/service catalog
-        self.products_services = {
-            "ai_consulting": {
-                "name": "AI Consulting Services",
-                "description": "Strategic AI implementation and transformation consulting",
-                "target_industries": ["technology", "finance", "healthcare", "retail"],
-                "pain_points": ["digital transformation", "automation", "efficiency", "innovation"]
-            },
-            "data_analytics": {
-                "name": "Advanced Data Analytics Platform",
-                "description": "Enterprise-grade data analytics and business intelligence",
-                "target_industries": ["finance", "retail", "manufacturing", "healthcare"],
-                "pain_points": ["data insights", "decision making", "reporting", "analytics"]
-            }
-        }
-    
     async def generate_initial_message(self, client_profile: ClientProfile, 
                                      social_posts_data: List[Dict[str, Any]] = None,
-                                     company_data: CompanyData = None) -> Dict[str, str]:
+                                     company_data: CompanyData = None,
+                                     products_services: Dict = None,
+                                     system_prompt: str = None) -> Dict[str, str]:
         """
         Generate personalized initial outreach message
-        
         Args:
             client_profile: Basic client information
             social_posts_data: List of social media posts data
             company_data: Company information (optional)
-            
+            products_services: Product/service catalog (required)
+            system_prompt: System prompt for the LLM (required)
         Returns:
             Dict containing message and conversation_id for future reference
         """
-        
+        if products_services is None:
+            raise ValueError("products_services must be provided dynamically via the API.")
+        if system_prompt is None:
+            raise ValueError("system_prompt must be provided dynamically via the API.")
         # Convert social media data to SocialPost objects
         social_posts = []
         if social_posts_data:
             social_posts = create_social_posts_from_data(social_posts_data)
-        
         # Use provided company data or create basic one
         if not company_data:
             company_data = CompanyData(
@@ -334,23 +322,16 @@ class AISalesAgent:
                 recent_news=[],
                 technologies=[]
             )
-        
         # Store context
         self.context_manager.store_client_context(client_profile, social_posts, company_data)
-        
         # Generate personalized message
-        context_prompt = self._build_context_prompt(client_profile, social_posts, company_data)
-        
+        context_prompt = self._build_context_prompt(client_profile, social_posts, company_data, products_services)
         response = self.openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
                     "role": "system",
-                    "content": """You are an expert sales professional who creates highly personalized, 
-                    non-salesy outreach messages. Your goal is to start meaningful conversations by 
-                    referencing specific, relevant details about the prospect's recent activity, 
-                    company situation, or industry challenges. Keep messages concise (2-3 sentences), 
-                    professional but warm, and always include a soft call-to-action."""
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
@@ -360,12 +341,9 @@ class AISalesAgent:
             temperature=0.7,
             max_tokens=200
         )
-        
         generated_message = response.choices[0].message.content
-        
         # Create unique conversation ID
         conversation_id = f"conv_{client_profile.client_id}_{int(datetime.utcnow().timestamp())}"
-        
         # Store initial conversation
         conversation_context = ConversationContext(
             conversation_id=conversation_id,
@@ -380,28 +358,28 @@ class AISalesAgent:
             client_interests=[],
             conversation_stage="prospecting"
         )
-        
         self.context_manager.store_conversation(conversation_context)
-        
         return {
             "message": generated_message,
             "conversation_id": conversation_id,
             "client_id": client_profile.client_id
         }
     
-    def generate_reply(self, conversation_id: str, incoming_message: str) -> Dict[str, Any]:
+    def generate_reply(self, conversation_id: str, incoming_message: str, products_services: Dict = None, reply_system_prompt: str = None) -> Dict[str, Any]:
         """
         Generate contextual reply based on conversation history
-        This method can be called anytime - minutes, hours, or days later
-        
         Args:
             conversation_id: Unique conversation identifier from initial message
             incoming_message: The client's reply message
-            
+            products_services: Product/service catalog (required)
+            reply_system_prompt: System prompt for the LLM (required)
         Returns:
             Dict containing the reply and updated conversation info
         """
-        
+        if products_services is None:
+            raise ValueError("products_services must be provided dynamically via the API.")
+        if reply_system_prompt is None:
+            raise ValueError("reply_system_prompt must be provided dynamically via the API.")
         # Get conversation history
         conversation = self.context_manager.get_conversation_history(conversation_id)
         if not conversation:
@@ -409,25 +387,18 @@ class AISalesAgent:
                 "error": "Conversation not found",
                 "message": "I apologize, but I don't have the context of our previous conversation. Could you please provide more details?"
             }
-        
         # Get client context
         client_context = self.context_manager.get_client_context(conversation.client_id)
-        
         # Build conversation prompt
         conversation_prompt = self._build_reply_prompt(
-            conversation, incoming_message, client_context
+            conversation, incoming_message, client_context, products_services
         )
-        
         response = self.openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
                     "role": "system",
-                    "content": """You are a professional sales representative continuing a conversation. 
-                    Respond naturally and helpfully to the prospect's message. Reference previous 
-                    conversation context appropriately. If they show interest, provide relevant 
-                    information about your solutions. If they have questions, answer them thoroughly. 
-                    Always maintain a consultative, helpful tone rather than being pushy."""
+                    "content": reply_system_prompt
                 },
                 {
                     "role": "user",
@@ -437,9 +408,7 @@ class AISalesAgent:
             temperature=0.7,
             max_tokens=300
         )
-        
         reply = response.choices[0].message.content
-        
         # Update conversation history with timestamps
         current_time = datetime.utcnow().isoformat()
         conversation.messages.extend([
@@ -455,18 +424,14 @@ class AISalesAgent:
             }
         ])
         conversation.last_message_sent = reply
-        
         # Update conversation stage based on reply sentiment
         conversation.conversation_stage = self._analyze_conversation_stage(
             incoming_message, conversation.messages
         )
-        
         # Extract interests and mentioned products for better context
         conversation.client_interests = self._extract_interests(incoming_message, conversation.messages)
-        conversation.products_mentioned = self._extract_mentioned_products(conversation.messages)
-        
+        conversation.products_mentioned = self._extract_mentioned_products(conversation.messages, products_services)
         self.context_manager.store_conversation(conversation)
-        
         return {
             "reply": reply,
             "conversation_id": conversation_id,
@@ -522,30 +487,27 @@ class AISalesAgent:
         
         return list(set(interests))  # Remove duplicates
     
-    def _extract_mentioned_products(self, conversation_history: List[Dict]) -> List[str]:
+    def _extract_mentioned_products(self, conversation_history: List[Dict], products_services: Dict) -> List[str]:
         """Extract products/services mentioned in conversation"""
         mentioned_products = []
-        
         for message in conversation_history:
             if message['role'] == 'assistant':
                 content_lower = message['content'].lower()
-                for product_key, product_info in self.products_services.items():
+                for product_key, product_info in products_services.items():
                     if product_info['name'].lower() in content_lower:
                         mentioned_products.append(product_key)
-        
         return list(set(mentioned_products))  # Remove duplicates
     
     def _build_context_prompt(self, client_profile: ClientProfile, 
                             social_posts: List[SocialPost], 
-                            company_data: CompanyData) -> str:
+                            company_data: CompanyData,
+                            products_services: Dict) -> str:
         """Build prompt for initial message generation"""
-        
         recent_posts_text = ""
         if social_posts:
             recent_posts_text = "\nRecent social media activity:\n"
             for post in social_posts[:3]:
                 recent_posts_text += f"- [{post.platform}] {post.content[:150]}...\n"
-        
         return f"""
         Generate a personalized outreach message for this prospect:
         
@@ -558,7 +520,7 @@ class AISalesAgent:
         {recent_posts_text}
         
         Available solutions that might be relevant:
-        {json.dumps(self.products_services, indent=2)}
+        {json.dumps(products_services, indent=2)}
         
         Create a personalized message that:
         1. References something specific about their recent activity or company
@@ -568,13 +530,11 @@ class AISalesAgent:
         """
     
     def _build_reply_prompt(self, conversation: ConversationContext, 
-                          incoming_message: str, client_context: Dict) -> str:
+                          incoming_message: str, client_context: Dict, products_services: Dict) -> str:
         """Build prompt for reply generation"""
-        
         conversation_history = "\n".join([
             f"{msg['role']}: {msg['content']}" for msg in conversation.messages[-6:]
         ])
-        
         return f"""
         Previous conversation:
         {conversation_history}
@@ -585,7 +545,7 @@ class AISalesAgent:
         
         Current conversation stage: {conversation.conversation_stage}
         
-        Available solutions: {json.dumps(self.products_services, indent=2)}
+        Available solutions: {json.dumps(products_services, indent=2)}
         
         Generate an appropriate response that:
         1. Acknowledges their message thoughtfully
@@ -611,120 +571,6 @@ class AISalesAgent:
             return 'closed_lost'
         else:
             return 'prospecting'
-
-# Usage Example - Updated for external data input and delayed conversations
-async def main():
-    # Initialize the AI Sales Agent
-    agent = AISalesAgent()
-    
-    # Example client profile
-    client = ClientProfile(
-        client_id="client_001",
-        name="Sarah Johnson",
-        email="sarah.johnson@innovatetech.com",
-        company="InnovateTech Solutions",
-        position="Chief Technology Officer",
-        industry="technology",
-        linkedin_url="https://linkedin.com/in/sarahjohnson",
-        twitter_handle="sarah_j_tech"
-    )
-    
-    # Example social media posts data (you provide this from your scraper)
-    social_posts_data = [
-        {
-            "platform": "linkedin",
-            "content": "Excited to announce our company's digital transformation initiative! We're looking to implement AI solutions across our operations to improve efficiency and customer experience. Any recommendations for reliable AI consulting partners? #DigitalTransformation #AI",
-            "timestamp": "2024-01-15T10:30:00Z",
-            "engagement_metrics": {"likes": 47, "comments": 15, "shares": 8},
-            "url": "https://linkedin.com/post/123456"
-        },
-        {
-            "platform": "twitter",
-            "content": "Frustrated with our current data analytics setup. We have tons of data but struggle to get actionable insights. Time for an upgrade! 📊 #DataAnalytics #BusinessIntelligence",
-            "timestamp": "2024-01-12T14:22:00Z",
-            "engagement_metrics": {"likes": 23, "retweets": 5, "replies": 12},
-            "url": "https://twitter.com/sarah_j_tech/status/789012"
-        }
-    ]
-    
-    # Example company data
-    company_data = CompanyData(
-        name="InnovateTech Solutions",
-        industry="technology",
-        size="Mid-size (200-500 employees)",
-        revenue="$50M-100M",
-        description="InnovateTech Solutions provides enterprise software solutions for mid-market companies, focusing on workflow automation and business process optimization.",
-        recent_news=[
-            "InnovateTech closes Series B funding round of $25M",
-            "Company expands to European markets",
-            "New partnership with Microsoft Azure announced"
-        ],
-        technologies=["Microsoft .NET", "Azure", "SQL Server", "React", "Python"]
-    )
-    
-    print("=== INITIAL OUTREACH ===")
-    # Generate initial personalized message
-    initial_result = await agent.generate_initial_message(
-        client_profile=client,
-        social_posts_data=social_posts_data,
-        company_data=company_data
-    )
-    
-    print(f"Generated Message: {initial_result['message']}")
-    print(f"Conversation ID: {initial_result['conversation_id']}")
-    
-    # Store the conversation ID for later use
-    conversation_id = initial_result['conversation_id']
-    
-    print("\n=== SIMULATING DELAYED REPLY (could be hours/days later) ===")
-    
-    # Simulate time passing... (in real scenario, this could be hours or days later)
-    # You would store the conversation_id and use it when a reply comes in
-    
-    # Mock incoming reply (this could come from email, LinkedIn, etc.)
-    incoming_reply = """Hi there! Thanks for reaching out at the perfect time. I saw your message right after posting about our digital transformation challenges. 
-    
-    We're definitely looking for AI consulting services, especially around data analytics and process automation. Your timing couldn't be better!
-    
-    Could you tell me more about your approach to AI implementation and maybe share some case studies similar to our industry?
-    
-    Best regards,
-    Sarah"""
-    
-    print(f"Client Reply (received later): {incoming_reply}")
-    
-    # Generate contextual response using the stored conversation_id
-    reply_result = agent.generate_reply(conversation_id, incoming_reply)
-    
-    if "error" not in reply_result:
-        print(f"\nAgent Response: {reply_result['reply']}")
-        print(f"Conversation Stage: {reply_result['conversation_stage']}")
-        print(f"Detected Interests: {reply_result['client_interests']}")
-        print(f"Total Messages in Conversation: {reply_result['message_count']}")
-    else:
-        print(f"Error: {reply_result['error']}")
-    
-    print("\n=== CONVERSATION SUMMARY ===")
-    # Get conversation summary (useful for tracking multiple conversations)
-    summary = agent.get_conversation_summary(conversation_id)
-    if summary:
-        print(f"Client: {summary['client_name']}")
-        print(f"Stage: {summary['conversation_stage']}")
-        print(f"Messages Exchanged: {summary['message_count']}")
-        print(f"Client Interests: {summary['client_interests']}")
-        print(f"Products Mentioned: {summary['products_mentioned']}")
-    
-    print("\n=== ANOTHER DELAYED REPLY ===")
-    
-    # Simulate another reply coming later
-    second_reply = "That sounds great! I'm particularly interested in the data analytics platform you mentioned. Could we schedule a call next week to discuss pricing and implementation timeline?"
-    
-    print(f"Second Client Reply: {second_reply}")
-    
-    second_response = agent.generate_reply(conversation_id, second_reply)
-    if "error" not in second_response:
-        print(f"\nAgent Response: {second_response['reply']}")
-        print(f"Updated Stage: {second_response['conversation_stage']}")
 
 # Standalone functions for easy integration
 def send_initial_message(client_data: Dict, social_posts: List[Dict], company_info: Dict = None):
@@ -761,6 +607,3 @@ def get_conversation_status(conversation_id: str):
     """
     agent = AISalesAgent()
     return agent.get_conversation_summary(conversation_id)
-
-if __name__ == "__main__":
-    asyncio.run(main())

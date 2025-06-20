@@ -35,37 +35,12 @@ def start_conversation():
     """
     Start a new conversation with a client
     
-    Expected JSON payload:
-    {
-        "client": {
-            "client_id": "client_001",
-            "name": "John Doe",
-            "email": "john@company.com",
-            "company": "TechCorp",
-            "position": "CTO",
-            "industry": "technology",
-            "linkedin_url": "https://linkedin.com/in/johndoe",  # optional
-            "twitter_handle": "johndoe"  # optional
-        },
-        "social_posts": [  # optional
-            {
-                "platform": "linkedin",
-                "content": "Post content...",
-                "timestamp": "2024-01-15T10:30:00Z",
-                "engagement_metrics": {"likes": 45, "comments": 12},
-                "url": "https://linkedin.com/post/123"  # optional
-            }
-        ],
-        "company_data": {  # optional
-            "name": "TechCorp",
-            "industry": "technology",
-            "size": "200-500 employees",
-            "revenue": "$50M-100M",  # optional
-            "description": "Company description...",
-            "recent_news": ["News item 1", "News item 2"],  # optional
-            "technologies": ["Python", "React", "AWS"]  # optional
-        }
-    }
+    Required JSON payload fields:
+    - client: { ... }
+    - social_posts: [ ... ] (optional)
+    - company_data: { ... } (optional)
+    - products_services: dict (REQUIRED): The product/service catalog for the agent to reference.
+    - system_prompt: str (REQUIRED): The system prompt for the initial message.
     """
     try:
         data = request.get_json()
@@ -79,6 +54,14 @@ def start_conversation():
         if 'client' not in data:
             return jsonify({
                 "error": "Client information is required"
+            }), 400
+        if 'products_services' not in data:
+            return jsonify({
+                "error": "products_services is required in the payload"
+            }), 400
+        if 'system_prompt' not in data:
+            return jsonify({
+                "error": "system_prompt is required in the payload"
             }), 400
         
         client_data = data['client']
@@ -119,11 +102,17 @@ def start_conversation():
                 technologies=company_info.get('technologies', [])
             )
         
+        # Get dynamic context from payload
+        products_services = data['products_services']
+        system_prompt = data['system_prompt']
+        
         # Generate initial message
         result = asyncio.run(agent.generate_initial_message(
             client_profile=client_profile,
             social_posts_data=social_posts_data,
-            company_data=company_data
+            company_data=company_data,
+            products_services=products_services,
+            system_prompt=system_prompt
         ))
         
         return jsonify({
@@ -147,10 +136,10 @@ def handle_conversation_reply(conversation_id: str):
     """
     Handle a reply in an existing conversation
     
-    Expected JSON payload:
-    {
-        "message": "Client's reply message"
-    }
+    Required JSON payload fields:
+    - message: str
+    - products_services: dict (REQUIRED): The product/service catalog for the agent to reference.
+    - reply_system_prompt: str (REQUIRED): The system prompt for the reply.
     """
     try:
         data = request.get_json()
@@ -159,11 +148,21 @@ def handle_conversation_reply(conversation_id: str):
             return jsonify({
                 "error": "Message is required"
             }), 400
+        if 'products_services' not in data:
+            return jsonify({
+                "error": "products_services is required in the payload"
+            }), 400
+        if 'reply_system_prompt' not in data:
+            return jsonify({
+                "error": "reply_system_prompt is required in the payload"
+            }), 400
         
         incoming_message = data['message']
+        products_services = data['products_services']
+        reply_system_prompt = data['reply_system_prompt']
         
         # Generate reply
-        result = agent.generate_reply(conversation_id, incoming_message)
+        result = agent.generate_reply(conversation_id, incoming_message, products_services, reply_system_prompt)
         
         if "error" in result:
             return jsonify({
@@ -303,13 +302,4 @@ def internal_error(error):
     }), 500
 
 if __name__ == '__main__':
-    print("Starting AI Sales Agent API...")
-    print("Available endpoints:")
-    print("- POST /api/conversation/start - Start a new conversation")
-    print("- POST /api/conversation/<id>/reply - Reply to a conversation")
-    print("- GET /api/conversation/<id>/summary - Get conversation summary")
-    print("- GET /api/conversation/<id> - Get full conversation details")
-    print("- GET /api/conversations - List all conversations")
-    print("- GET /health - Health check")
-    
     app.run(debug=True)
