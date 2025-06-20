@@ -134,13 +134,12 @@ class ContextManager:
         self.SessionLocal = sessionmaker(bind=self.engine)
     
     def store_client_context(self, client_profile: ClientProfile, 
-                           social_posts: List[SocialPost], 
-                           company_data: CompanyData):
+                        social_posts: List[SocialPost], 
+                        company_data: CompanyData):
         """Store client context in both vector and relational databases"""
-        
         # Prepare text for vector embedding
         context_text = self._prepare_context_text(client_profile, social_posts, company_data)
-        
+
         # Store in vector database for semantic search
         self.collection.add(
             documents=[context_text],
@@ -151,26 +150,41 @@ class ContextManager:
             }],
             ids=[f"context_{client_profile.client_id}"]
         )
-        
+
         # Store structured data in SQL database
         db = self.SessionLocal()
         try:
-            profile_record = ClientProfiles(
-                client_id=client_profile.client_id,
-               profile_data=json.dumps({
-        "profile": asdict(client_profile),
-        "social_posts": [
-            {
-                **asdict(post),
-                "timestamp": post.timestamp.isoformat() if isinstance(post.timestamp, datetime) else post.timestamp
-            }
-            for post in social_posts
-        ],
-        "company_data": asdict(company_data)
-    })
-)
-            db.merge(profile_record)
+            existing_profile = db.query(ClientProfiles).filter(
+                ClientProfiles.client_id == client_profile.client_id
+            ).first()
+            profile_data = json.dumps({
+                "profile": asdict(client_profile),
+                "social_posts": [
+                    {
+                        **asdict(post),
+                        "timestamp": post.timestamp.isoformat() if isinstance(post.timestamp, datetime) else post.timestamp
+                    }
+                    for post in social_posts
+                ],
+                "company_data": asdict(company_data)
+            })
+            if existing_profile:
+                # Update existing profile
+                existing_profile.profile_data = profile_data
+                existing_profile.last_updated = datetime.utcnow()
+            else:
+                # Insert new profile
+                profile_record = ClientProfiles(
+                    client_id=client_profile.client_id,
+                    profile_data=profile_data,
+                    last_updated=datetime.utcnow()
+                )
+                db.add(profile_record)
             db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error storing client profile: {e}")
+            raise
         finally:
             db.close()
     
@@ -213,18 +227,50 @@ class ContextManager:
         finally:
             db.close()
     
+    # def store_conversation(self, conversation_context: ConversationContext):
+    #     """Store conversation history"""
+    #     db = self.SessionLocal()
+    #     try:
+    #         conv_record = ConversationHistory(
+    #             conversation_id=conversation_context.conversation_id,
+    #             client_id=conversation_context.client_id,
+    #             messages=json.dumps(conversation_context.messages),
+    #             stage=conversation_context.conversation_stage
+    #         )
+    #         db.merge(conv_record)
+    #         db.commit()
+    #     finally:
+    #         db.close()
+
     def store_conversation(self, conversation_context: ConversationContext):
-        """Store conversation history"""
+        """Store conversation history - FIXED VERSION"""
         db = self.SessionLocal()
         try:
-            conv_record = ConversationHistory(
-                conversation_id=conversation_context.conversation_id,
-                client_id=conversation_context.client_id,
-                messages=json.dumps(conversation_context.messages),
-                stage=conversation_context.conversation_stage
-            )
-            db.merge(conv_record)
+            # Check if conversation exists
+            existing_conv = db.query(ConversationHistory).filter(
+                ConversationHistory.conversation_id == conversation_context.conversation_id
+            ).first()
+            
+            if existing_conv:
+                # Update existing conversation
+                existing_conv.messages = json.dumps(conversation_context.messages)
+                existing_conv.stage = conversation_context.conversation_stage
+                existing_conv.last_updated = datetime.utcnow()
+            else:
+                # Create new conversation
+                conv_record = ConversationHistory(
+                    conversation_id=conversation_context.conversation_id,
+                    client_id=conversation_context.client_id,
+                    messages=json.dumps(conversation_context.messages),
+                    stage=conversation_context.conversation_stage
+                )
+                db.add(conv_record)
+            
             db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error storing conversation: {e}")
+            raise
         finally:
             db.close()
     

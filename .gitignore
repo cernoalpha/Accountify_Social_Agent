@@ -20,6 +20,8 @@ parts/
 sdist/
 var/
 *.egg-info/
+chroma_db/
+sales_agent.db
 .installed.cfg
 *.egg
 
