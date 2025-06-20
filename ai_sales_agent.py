@@ -199,7 +199,7 @@ class ContextManager:
             f"Industry: {client_profile.industry}",
             f"Company: {company_data.name} - {company_data.description}",
             f"Company Size: {company_data.size}",
-            f"Technologies: {', '.join(company_data.technologies)}",
+            f"Technologies: {', '.join(company_data.technologies or [])}",
         ]
         
         # Add recent social posts

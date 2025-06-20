@@ -1,0 +1,82 @@
+{
+  "client": {
+    "client_id": "client_001",
+    "name": "Aditi Jain",
+    "email": null,
+    "company": "",
+    "position": "Product Designer",
+    "industry": "Software Development",
+    "linkedin_url": "https://www.linkedin.com/in/aditi-jain-productdesigner/",
+    "twitter_handle": null
+  },
+  "social_posts": [
+    {
+      "platform": "linkedin",
+      "content": "🚨 FIRED BY MY FOUNDER. 🚨\n (Technically... replaced by ChatGPT. Which somehow hurts more.)\n\nSo apparently, AI can now redesign product screens in under 10 seconds.\nCool cool cool cool cool.\n\nHere’s what went down:\nMy very kind, totally supportive, not-at-all-cutthroat founder — in a totally chill, non-dramatic act of betrayal — asked ChatGPT to redesign some of our app screens.\n\nAI: Spits out a slick UI in 0.4 seconds\nTeam: “OMG this is so sleek!” \nMe: Staring at my 98-layer Figma file with 6 hidden artboards, and one slowly dying will to live. 🥲 🥲 \n\nI mean sure, AI is fast. \nSure, it didn’t cry over 18 rounds of feedback.\nAnd no, it’s never heard the phrase \n“Ye button mein thoda aur emotion daal do.” \n“Hmmm...maza nai aa raha”\n\nBut does it truly understand design?\nUnclear.\n\nDid it charm my team in less than 5 seconds?\nUnfortunately, yes.\n\nSo yeah, unclear if I've been officially fired or just politely informed that I'm now reporting to ChatGPT..\n\nAnyway, if anyone wants a slightly traumatized product designer who's now fluent in existential crisis and cries exclusively in Gilroy & Mulish—\nDMs are open.",
+      "timestamp": "2025-03-27T11:40:48.624Z",
+      "engagement_metrics": {
+        "likes": 97,
+        "comments": 30
+      },
+      "url": "https://www.linkedin.com/posts/aditi-jain-productdesigner_guess-its-time-we-bid-farewell-to-our-product-activity-7310989165326659584-prba?utm_source=combined_share_message&utm_medium=member_desktop&rcm=ACoAAE5zGRABPdS9szNsxsUa4FGLfnRGB4aoNY8"
+    },
+    {
+      "platform": "linkedin",
+      "content": "kudos to the good loan company on this!!\nAditi Jain Yenmo (YC W24)",
+      "timestamp": "2025-03-20T14:39:10.406Z",
+      "engagement_metrics": {
+        "likes": 17,
+        "comments": 2
+      },
+      "url": "https://www.linkedin.com/posts/gaurav-dadlani_kudos-to-the-good-loan-company-on-this-activity-7308413259139661825-vgJu?utm_source=combined_share_message&utm_medium=member_desktop&rcm=ACoAAE5zGRABPdS9szNsxsUa4FGLfnRGB4aoNY8"
+    },
+    {
+      "platform": "linkedin",
+      "content": "Super proud to annouce our recent fundraise of 9.2cr to build India's first Good Loan Company Yenmo (YC W24) 🚀 \n\nThe past year has been incredibly rewarding for us at @yenmo\n. Me and Aryan Agarwal started Yenmo (YC W24) in a small cabin that could barely fit the two of us. Having first hand seen how loan companies treat their customers, we dreamed of a building a loan company that prioritised ethical practices over revenue. We hoped to disburse crores worth of loans and allow people access to low cost credit lines. The last year has seen so many of our dreams come true.\n\nWe've now onboarded some incredible people to back us as we move forward in this journey. While we pitched Yenmo to multiple people, we also realised the kind of people we wanted to see on our board and I cannot be more excited with the set of folks we have with us. This round has participation from ZAKA VC Pioneer Fund Team Ignite Ventures Y Combinator and some incredible angels including Olivier Porté, Laurent Benhamou. \n\nThis fundraise raise allows us to move more confidently towards our goal of building India's first good loan company. Our motto is always providing low cost loans, not asking for unnecessary data or permissions from our customers and have a customer support team that is always respectful. We also have some more exciting products that we would be launching soon. \n\nYenmo (YC W24) Aryan Agarwal",
+      "timestamp": "2025-03-11T04:26:24.399Z",
+      "engagement_metrics": {
+        "likes": 637,
+        "comments": 64
+      },
+      "url": "https://www.linkedin.com/posts/ashutoshpurohit97_super-proud-to-annouce-our-recent-fundraise-activity-7304823707003195393-5Yfp?utm_source=combined_share_message&utm_medium=member_desktop&rcm=ACoAAE5zGRABPdS9szNsxsUa4FGLfnRGB4aoNY8"
+    }
+  ],
+  "company_data": {
+    "name": "Yenmo (YC W24)",
+    "industry": "Software Development",
+    "size": "2-10 employees",
+    "revenue": null,
+    "description": "Never sell your investments again. Get an instant loan against your investments at a flat 10.5% interest! Software Development Bengaluru, Karnataka 3K followers 2-10 employees Follow Visit website Home About Posts Jobs People Overview Always rest assured of a low interest rate and respectful customer support. At Yenmo, we believe there is a better way to lend money. It shouldn't be with interest rates that burn a hole in your pocket, it shouldn't be pestering customers with calls and messages. Instead, it should be affordable, accessible, and with the highest priority being customer satisfaction. We hope to bring a modern way of lending which promotes healthy financial behavior. A behavior in which customers end up increasing their networth despite taking a loan. We hope to create a more financially sound ecosystem with Yenmo It's a long road, but we've strapped our bags and are walking. Walking towards a new financially sound India and we hope you'll join us on this journey! Download our app today! https://yenmo.in/download Want to speak with us? Shoot a mail to founders@yenmo.in",
+    "recent_news": [
+      "Super proud to announce our recent fundraise of 9.2cr to build India's first Good Loan Company Yenmo (YC W24)",
+      "Yenmo (YC W24) offers a better way to access cash for India's 60 million investors"
+    ],
+    "technologies": null
+  },
+  "products_services": {
+    "Accountify": {
+      "name": "Accountify",
+      "description": "Cheaper ABM software with comprehensive sales automation. Key solutions include CRM integration, multi-channel campaigns, AI-driven lead research, social media intent capture, and sales pipeline automation.",
+      "target_industries": [
+        "B2B",
+        "Sales",
+        "Marketing",
+        "CRM"
+      ],
+      "pain_points": [
+        "expensive ABM software",
+        "lack of sales automation",
+        "inefficient lead research",
+        "difficulty in capturing social media intent",
+        "manual sales pipeline management"
+      ],
+      "competitive_vendors": [
+        "Demandbase",
+        "6sense",
+        "Terminus"
+      ],
+      "target_market": "India’s ₹15,000 crore B2B segment (scaling globally)"
+    }
+  },
+  "system_prompt": "You are an expert sales professional who creates highly personalized, non-salesy outreach messages. Your goal is to start meaningful conversations by referencing specific, relevant details about the prospect's recent activity, company situation, or industry challenges. Keep messages concise (2-3 sentences), professional but warm, and always include a soft call-to-action."
+}
